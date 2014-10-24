@@ -1,0 +1,3 @@
+# Ignore Large data files
+/program1/data/trip_data_1.csv
+/program1/data/trip_data_2.csv

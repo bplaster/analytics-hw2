@@ -22,8 +22,8 @@ def derive_filter(rows,tolerance = 4.0):
     distances = numpy.array([row[2] for row in rows]) # InMemory
     trip_dist_mean = numpy.mean(distances)
     trip_dist_std = numpy.std(distances)
-    logging.debug("Dervied mean "+str(trip_dist_mean))
-    logging.debug("Dervied std "+str(trip_dist_std))
+    logging.debug("Derived mean "+str(trip_dist_mean))
+    logging.debug("Derived std "+str(trip_dist_std))
     def custom_filter(row):
         if row[1] != 0.0 and row[2] != 0.0 and row[3] != 0.0 and row[4] != 0.0 and row[5] != 0.0 and row[6] != 0.0: # filters out rows with zero elements
             plong,plat,dlong,dlat=row[-4:]

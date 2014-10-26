@@ -3,7 +3,7 @@
 # P(passenger_count = 3 | dropoff_longitude,dropoff_lattitude)
 # Plot and compare both densities. Describe the method you used for performing density estimation
 # (it could be nearest neighbors, or a parametric method).
-
+from __future__ import division
 __author__ = 'akp76_bp364'
 
 import logging
@@ -34,12 +34,13 @@ def derive_filter(rows,tolerance = 4.0):
     def custom_filter(row):
         if row[1] != 0.0 and row[2] != 0.0 and row[3] != 0.0 and row[4] != 0.0 and row[5] != 0.0 and row[6] != 0.0 and row[7] != 0.0: # filters out rows with zero elements
             plong,plat,dlong,dlat=row[-4:]
-            if 100 > get_distance(plat,plong,dlat,dlong) > 0 and ((row[3] - trip_dist_mean) / trip_dist_std) < tolerance:
-                return True
+            if abs(plat) > tolerance or abs(dlat) > tolerance or abs(plong) > tolerance or abs(dlong) > tolerance:
+                if 100 > get_distance(plat,plong,dlat,dlong) > 0 and ((row[3] - trip_dist_mean) / trip_dist_std) < tolerance:
+                    return True
         return False
     return custom_filter
 
-def derive_scale_transform(rows,indexes):
+def derive_bucket_transform(rows,indexes,div_size):
     """
     Generates tran
     :param rows:
@@ -60,17 +61,27 @@ def derive_scale_transform(rows,indexes):
         first = False
     logging.debug("scale values min "+str(min_values))
     logging.debug("scale values max "+str(max_values))
+
     def custom_transform(row):
         try:
             row[0] = int(datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S" ).strftime("%s"))
-            for index in indexes:
-                row[index] = (row[index] - min_values[index]) / (max_values[index]-min_values[index])
+            for index in indexes[-2:]:
+                row[index] = int(round(div_size * (row[index] - min_values[index]) / (max_values[index]-min_values[index]),0))
             return row
         except:
             logging.exception("Scaling error")
             raise ValueError
     return custom_transform
 
+def plot_buffer(buf, title):
+
+    # Plot
+    fig = plt.figure(title)
+    ax = Axes3D(fig)
+    ax.scatter(buf[:,0],buf[:,1],buf[:,2])
+
+    # Clear the buffer
+    buf = []
 
 if __name__ == '__main__':
     
@@ -78,6 +89,8 @@ if __name__ == '__main__':
     models = []
     features = (4,5,6,7) 
     target = 1
+    div_sz = 100
+    max_pass = 7
 
     curr_data = EXAMPLE_DATA
     #curr_data = TRAIN_DATA
@@ -85,30 +98,41 @@ if __name__ == '__main__':
     # # Derive a filter from train data
     mean_dev_filter = derive_filter(utils.load_csv_lazy(curr_data,S_FIELDS,F_FIELDS))
 
-    # # Generate a scale transformer using only indexes which are used as features, use filter derived previously
-    scale_transform = derive_scale_transform(utils.load_csv_lazy(curr_data,S_FIELDS,F_FIELDS,row_filter=mean_dev_filter),features)
+    # # Generate a bucket transformer using only indexes which are used as features, use filter derived previously
+    bucket_transform = derive_bucket_transform(utils.load_csv_lazy(curr_data,S_FIELDS,F_FIELDS,row_filter=mean_dev_filter),features, div_sz)
 
     # Load Train data
-    train_data = utils.load_csv_lazy(curr_data, S_FIELDS, F_FIELDS, row_filter = mean_dev_filter, row_tranformer = scale_transform)
+    train_data = utils.load_csv_lazy(curr_data, S_FIELDS, F_FIELDS, row_filter = mean_dev_filter, row_tranformer = bucket_transform)
 
-    x_buf,y_buf = [],[]
-    for i,row in enumerate(train_data):
-        utils.split(target,features,row,x_buf,y_buf)
+    # Create empty containers
+    x_buf,y_buf, z_buf = [],[],[]
+    raw_buckets = [[[0 for k in xrange(max_pass+1)] for j in xrange(div_sz+1)] for i in xrange(div_sz+1)]
+    density_buckets = []
 
-    x_buf,y_buf = map(numpy.array,[x_buf,y_buf])
-    #model = utils.linear_regression(x_buf,y_buf)
-    #print "\nEvaluation on "+str(len(x_buf))+" trips from train_data.csv"
-    #models.append(("Model trained on "+str(len(x_buf))+" trips from train_data.csv",model))
-    #utils.evaluate(models,x_buf,y_buf)
+    # Determine bucket counts
+    for row in train_data:
+        raw_buckets[row[6]][row[7]][int(row[1])]+=1
 
-    # Plot
-    fig = plt.figure()
-    ax = Axes3D(fig)
-    ax.scatter(x_buf[:,2],x_buf[:,3],y_buf[:])
+    # Determine densities
+    for k in xrange(max_pass):
+        density_buckets.append([])
+        for i in xrange(div_sz):
+            for j in xrange(div_sz):
+                total = sum(raw_buckets[i][j][:])
+                if total:
+                    density = raw_buckets[i][j][k]/total
+                    (density_buckets[k]).append([i,j,density])
+
+    # Plot data
+    plot_buffer(numpy.array(density_buckets[1]),'1 Person')
+    plot_buffer(numpy.array(density_buckets[3]),'3 Person')
     plt.show()
 
+
     # clear the buffer
-    x_buf,y_buf = [],[]
+    raw_buckets = []
+    density_buckets = []
+
 
 
     

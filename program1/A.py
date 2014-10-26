@@ -3,6 +3,7 @@
 # P(passenger_count = 3 | dropoff_longitude,dropoff_lattitude)
 # Plot and compare both densities. Describe the method you used for performing density estimation
 # (it could be nearest neighbors, or a parametric method).
+
 from __future__ import division
 __author__ = 'akp76_bp364'
 
@@ -34,7 +35,7 @@ def derive_filter(rows,tolerance = 4.0):
     def custom_filter(row):
         if row[1] != 0.0 and row[2] != 0.0 and row[3] != 0.0 and row[4] != 0.0 and row[5] != 0.0 and row[6] != 0.0 and row[7] != 0.0: # filters out rows with zero elements
             plong,plat,dlong,dlat=row[-4:]
-            if abs(plat) > tolerance or abs(dlat) > tolerance or abs(plong) > tolerance or abs(dlong) > tolerance:
+            if abs(plat) > tolerance and abs(dlat) > tolerance and abs(plong) > tolerance and abs(dlong) > tolerance:
                 if 100 > get_distance(plat,plong,dlat,dlong) > 0 and ((row[3] - trip_dist_mean) / trip_dist_std) < tolerance:
                     return True
         return False
@@ -92,8 +93,8 @@ if __name__ == '__main__':
     div_sz = 100
     max_pass = 7
 
-    curr_data = EXAMPLE_DATA
-    #curr_data = TRAIN_DATA
+    #curr_data = EXAMPLE_DATA
+    curr_data = TRAIN_DATA
 
     # # Derive a filter from train data
     mean_dev_filter = derive_filter(utils.load_csv_lazy(curr_data,S_FIELDS,F_FIELDS))
@@ -105,16 +106,15 @@ if __name__ == '__main__':
     train_data = utils.load_csv_lazy(curr_data, S_FIELDS, F_FIELDS, row_filter = mean_dev_filter, row_tranformer = bucket_transform)
 
     # Create empty containers
-    x_buf,y_buf, z_buf = [],[],[]
     raw_buckets = [[[0 for k in xrange(max_pass+1)] for j in xrange(div_sz+1)] for i in xrange(div_sz+1)]
     density_buckets = []
 
     # Determine bucket counts
-    for row in train_data:
-        raw_buckets[row[6]][row[7]][int(row[1])]+=1
+    for i,row in enumerate(train_data):
+        raw_buckets[row[6]][row[7]][int(row[target])]+=1
 
     # Determine densities
-    for k in xrange(max_pass):
+    for k in range(max_pass):
         density_buckets.append([])
         for i in xrange(div_sz):
             for j in xrange(div_sz):
@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
     # Plot data
     plot_buffer(numpy.array(density_buckets[1]),'1 Person')
-    plot_buffer(numpy.array(density_buckets[3]),'3 Person')
+    #plot_buffer(numpy.array(density_buckets[3]),'3 Person')
     plt.show()
 
 

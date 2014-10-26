@@ -11,6 +11,15 @@ def metrics(model,x,y):
     :return ols and rmse:
     """
     yhat = model.predict(x)
+    return (yhat,x,y)
+
+def metrics_manual(yhat,x,y):
+    """
+    compute ols and rmse
+    :param y:
+    :param yhat:
+    :return ols and rmse:
+    """
     ols = sum(numpy.square((y-yhat)))
     rmse = (ols/len(y))**0.5
     corr = numpy.corrcoef(y,yhat)
@@ -19,6 +28,9 @@ def metrics(model,x,y):
 def evaluate(model_list,x,y):
     for description,model in model_list:
         print "\t",description,"OLS, RMSE and Correlation coefficient",metrics(model,x,y),"Model",model.coef_,model.intercept_
+
+def evaluate_manual(yhat,x,y):
+        print "\t","OLS, RMSE and Correlation coefficient",metrics_manual(yhat,x,y)
 
 
 def split(target, features, row, x, y, x_test=None, y_test=None, i= None, nth = None):

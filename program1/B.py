@@ -58,7 +58,6 @@ if __name__ == '__main__':
 
     # now training_data is a loadCSV is a generator
     train_data = [row for row in utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS, row_filter = mean_dev_filter)]
-    logging.debug("inspection for transformation "+str(train_data[-3:]))
 
     # now trip_data_1 is a loadCSV is a generator
     trip_data_1 = utils.load_csv_lazy(test_file,S_FIELDS,F_FIELDS, row_filter = mean_dev_filter)
@@ -67,31 +66,30 @@ if __name__ == '__main__':
     x_train, y_train = [],[]
     for i,row in enumerate(train_data):
     	plong,plat,dlong,dlat=row[-4:]
-    	dist = get_distance(plat,plong,dlat,dlong)
-    	x_train.append(dist)
+    	disp = get_distance(plat,plong,dlat,dlong)
+    	x_train.append(disp)
     	y_train.append(row[target])
     x_train, y_train = map(numpy.array,[x_train, y_train])
 
 
     # Find nearest neigbor
-    x_test,y_test_actual,y_test_predict = [],[],[]
+    y_test_actual,y_test_predict = [],[]
     for i,row in enumerate(trip_data_1):
     	if i == 10**5:
         	break
     	plong,plat,dlong,dlat=row[-4:]
-    	dist = get_distance(plat,plong,dlat,dlong)
-        diff = abs(x_train - dist)
+    	disp = get_distance(plat,plong,dlat,dlong)
+        diff = abs(x_train - disp)
         index = diff.argmin()
-        x_test.append(dist)
         y_test_actual.append(row[target])
         y_test_predict.append(y_train[index])
 
 
-    x_test,y_test_actual,y_test_predict = map(numpy.array,[x_test,y_test_actual,y_test_predict])
+    y_test_actual,y_test_predict = map(numpy.array,[y_test_actual,y_test_predict])
 
-    print "\nEvaluation on "+str(len(x_test))+" trips from trip_data_1.csv"
-    utils.evaluate_manual(y_test_predict,x_test,y_test_actual)
+    print "\nEvaluation on "+str(len(y_test_predict))+" trips from trip_data_1.csv"
+    utils.evaluate_manual(y_test_predict,y_test_actual)
     # clear the buffer
-    x_test,y_test_actual,y_test_predict = [],[],[]
+    y_test_actual,y_test_predict = [],[]
     x_train, y_train = [],[]
 

@@ -11,9 +11,9 @@ def metrics(model,x,y):
     :return ols and rmse:
     """
     yhat = model.predict(x)
-    return (yhat,x,y)
+    return metrics_manual(yhat,y)
 
-def metrics_manual(yhat,x,y):
+def metrics_manual(yhat,y):
     """
     compute ols and rmse
     :param y:
@@ -29,8 +29,8 @@ def evaluate(model_list,x,y):
     for description,model in model_list:
         print "\t",description,"OLS, RMSE and Correlation coefficient",metrics(model,x,y),"Model",model.coef_,model.intercept_
 
-def evaluate_manual(yhat,x,y):
-        print "\t","OLS, RMSE and Correlation coefficient",metrics_manual(yhat,x,y)
+def evaluate_manual(yhat,y):
+        print "\t","OLS, RMSE and Correlation coefficient",metrics_manual(yhat,y)
 
 
 def split(target, features, row, x, y, x_test=None, y_test=None, i= None, nth = None):
@@ -86,7 +86,7 @@ def ifilter(row):
     return True
 
 
-def load_csv_lazy(fname,str_fields,float_fields,exclude_first=True,row_filter=ifilter,row_tranformer=itransformer):
+def load_csv_lazy(fname,str_fields,float_fields,exclude_first=True,row_filter=ifilter,row_transformer=itransformer):
     """
     np.genfromtxt is a good alternative, not sure if it can act as a generator. pandas frames are also a good alternative.
     :param fname:
@@ -105,7 +105,7 @@ def load_csv_lazy(fname,str_fields,float_fields,exclude_first=True,row_filter=if
                 entries = line.strip().split(',')
                 row = [entries[f] for f in str_fields] + [float(entries[f]) for f in float_fields]
                 if row_filter(row):
-                    row = row_tranformer(row)
+                    row = row_transformer(row)
                     yield row
                 else:
                     excluded_count += 1

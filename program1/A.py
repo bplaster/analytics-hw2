@@ -103,7 +103,7 @@ if __name__ == '__main__':
     bucket_transform = derive_bucket_transform(utils.load_csv_lazy(curr_data,S_FIELDS,F_FIELDS,row_filter=mean_dev_filter),features, div_sz)
 
     # Load Train data
-    train_data = utils.load_csv_lazy(curr_data, S_FIELDS, F_FIELDS, row_filter = mean_dev_filter, row_tranformer = bucket_transform)
+    train_data = utils.load_csv_lazy(curr_data, S_FIELDS, F_FIELDS, row_filter = mean_dev_filter, row_transformer = bucket_transform)
 
     # Create empty containers
     raw_buckets = [[[0 for k in xrange(max_pass+1)] for j in xrange(div_sz+1)] for i in xrange(div_sz+1)]
@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
     # Plot data
     plot_buffer(numpy.array(density_buckets[1]),'1 Person')
-    #plot_buffer(numpy.array(density_buckets[3]),'3 Person')
+    plot_buffer(numpy.array(density_buckets[3]),'3 Person')
     plt.show()
 
 

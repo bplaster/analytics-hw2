@@ -56,14 +56,6 @@ def derive_time_transform(rows):
     return custom_transform
         
 
-def enumerate_look(iterable):
-    it = enumerate(iterable)
-    last = it.next()
-    for val in it:
-        yield last, False
-        last = val
-    yield last, True
-
 if __name__ == '__main__':
     models = []
     features = (0,3,4,5,6,7) 

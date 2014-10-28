@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
     # Determine bucket counts
     for i,row in enumerate(train_data):
-        raw_buckets[row[6]][row[7]][int(row[target])]+=1
+        raw_buckets[row[features[2]]][row[features[3]]][int(row[target])]+=1
 
     # Determine densities
     for k in range(max_pass):
@@ -123,10 +123,11 @@ if __name__ == '__main__':
                     density = raw_buckets[i][j][k]/total
                     (density_buckets[k]).append([i,j,density])
 
-    # Plot data
-    plot_buffer(numpy.array(density_buckets[1]),'1 Person')
-    plot_buffer(numpy.array(density_buckets[3]),'3 Person')
-    plt.show()
+    print "Total points plotted: ", len(density_buckets[1])
+    # # Plot data
+    # plot_buffer(numpy.array(density_buckets[1]),'1 Person')
+    # plot_buffer(numpy.array(density_buckets[3]),'3 Person')
+    # plt.show()
 
 
     # clear the buffer

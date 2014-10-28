@@ -3,6 +3,13 @@ from sklearn import linear_model
 from distance import get_distance
 # logging.basicConfig(filename='logs/utils.log',level=logging.DEBUG,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+def time_to_float(str_time):
+    date, time = (str_time).split(" ")
+    years, months, days = (date).split("-")
+    hours, minutes, seconds = time.split(":")
+    time_in_minutes = 24*20*float(days)*60*float(hours)+float(minutes)
+    return time_in_minutes
+
 def metrics(model,x,y):
     """
     compute ols and rmse

@@ -46,15 +46,13 @@ def derive_time_transform(rows):
     """    
     def custom_transform(row):
         try:
-        	date, time = (row[0]).split(" ")
-    		hours, minutes, seconds = time.split(":")
-    		row[0] = 60*float(hours)+float(minutes)
+    		row[0] = utils.time_to_float(row[0])
      		return row
         except:
             logging.exception("Time error")
             raise ValueError
     return custom_transform
-        
+
 
 if __name__ == '__main__':
     models = []

@@ -9,6 +9,7 @@ import logging
 logging.basicConfig(filename='logs/D.log',level=logging.DEBUG,format='%(asctime)s - %(levelname)s - %(message)s')
 import datetime
 import code.utils as utils
+import math
 from code.distance import get_distance
 import numpy
 from config import S_FIELDS,F_FIELDS,EXAMPLE_DATA,TRAIN_DATA,TRIP_DATA_1
@@ -37,67 +38,123 @@ def derive_filter(rows,tolerance = 4.0):
         return False
     return custom_filter
 
-def derive_time_transform(rows):
+def derive_means(rows, indexes):
+	"""
+	Generates tran
+	:param rows:
+	:param indexes:
+	:return:
+	"""  
+	# First Loop through calculate the mean  
+	mean_values = {}
+	first = True
+	count = 0
+	for row in rows:
+		row[0] = utils.time_to_float(row[0])
+		count += 1
+		for index in indexes:
+			if not first:
+				mean_values[index] += row[index]
+			else:
+				mean_values[index] = row[index]
+		first = False
+	for key, value in mean_values.iteritems():
+		mean_values[key] = value / count
+	logging.debug("scale values mean"+str(mean_values))
+
+	return mean_values
+
+
+def derive_stddevs(rows, indexes, mean_values):
+	"""
+	Generates tran
+	:param rows:
+	:param indexes:
+	:return:
+	"""  
+	# Second Loop through calculate the standard deviation
+	std_dev_values = {}
+	first = True
+	count = 0
+	for row in rows:
+		row[0] = utils.time_to_float(row[0])
+		count += 1
+		for index in indexes:
+			if not first:
+				std_dev_values[index] += (row[index]-mean_values[index])**2
+			else:
+				std_dev_values[index] = (row[index]-mean_values[index])**2
+		first = False
+	for key, value in std_dev_values.iteritems():
+		std_dev_values[key] = math.sqrt(value / count)
+	logging.debug("scale values standard deviation"+str(std_dev_values))
+
+	# def custom_transform(row):
+	# 	try:
+	# 		row[0] = time_to_float(row[0])
+	# 		for index in indexes:
+	# 			row[index] = (row[index] - mean_values[index])/std_dev_values[index] 
+	# 		return row
+	# 	except:
+	# 		logging.exception("Scaling error")
+	# 		raise ValueError
+	
+	return std_dev_values
+
+def derive_scale_transform(rows,indexes,mean_values,std_values):
     """
     Generates tran
     :param rows:
     :param indexes:
     :return:
-    """    
-    min_values,max_values,mean_values = [],[],[]
+    """
+    min_values,max_values = {},{}
     first = True
-    count = 0
     for row in rows:
-        date, time = (row[0]).split(" ")
-        hours, minutes, seconds = time.split(":")
-        row[0] = 60*float(hours)+float(minutes)
-        count += 1
+        row[0] = utils.time_to_float(row[0])
         for index in indexes:
             if not first:
                 max_values[index] = max(max_values[index],row[index])
                 min_values[index] = min(min_values[index],row[index])
-                mean_values[index] += row[index]
             else:
                 max_values[index] = row[index]
                 min_values[index] = row[index]
         first = False
-    
-    mean_values = np.array(mean_values)
-    mean_values /= count 
     logging.debug("scale values min "+str(min_values))
     logging.debug("scale values max "+str(max_values))
-    logging.debug("scale values mean"+str(mean_values))
-
     def custom_transform(row):
         try:
-        	date, time = (row[0]).split(" ")
-    		hours, minutes, seconds = time.split(":")
-    		row[0] = 60*float(hours)+float(minutes)
-     		return row
+            row[0] = utils.time_to_float(row[0])
+            for index in indexes:
+            	#row[index] = (row[index] - mean_values[index])/std_values[index] 
+                row[index] = (row[index] - min_values[index]) / (max_values[index]-min_values[index])
+            return row
         except:
-            logging.exception("Time error")
+            logging.exception("Scaling error")
             raise ValueError
     return custom_transform
-        
+
 
 if __name__ == '__main__':
     models = []
     features = (0,3,4,5,6,7) 
     target = 2
-    train_file = TR
+    train_file = EXAMPLE_DATA
     test_file = TRAIN_DATA
 
     # Derive a filter from example data
     mean_dev_filter = derive_filter(utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS))
 
-    # Generate a time transformer using only indexes which are used as features, use filter derived previously
-    time_transform = derive_time_transform(utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS,row_filter=mean_dev_filter))
+    # Generate a scale transformer using only indexes which are used as features, use filter derived previously
+    means = derive_means(utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS,row_filter=mean_dev_filter),features)
+    stddevs = derive_stddevs(utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS,row_filter=mean_dev_filter),features,means)
+    scale_transform = derive_scale_transform(utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS,row_filter=mean_dev_filter),features,means,stddevs)
 
     # now training_data is a loadCSV is a generator
-    train_data = [row for row in utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS, row_filter = mean_dev_filter, row_transformer = time_transform)]
+    train_data = [row for row in utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS, row_filter = mean_dev_filter, row_transformer = scale_transform)]
 
     # now trip_data_1 is a loadCSV is a generator
-    trip_data_1 = utils.load_csv_lazy(test_file,S_FIELDS,F_FIELDS, row_filter = mean_dev_filter, row_transformer = time_transform)
+    trip_data_1 = utils.load_csv_lazy(test_file,S_FIELDS,F_FIELDS, row_filter = mean_dev_filter, row_transformer = scale_transform)
 
     # Set up neighbors data
     x_train, y_train = [],[]

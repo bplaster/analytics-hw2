@@ -11,6 +11,7 @@ logging.basicConfig(filename='logs/B.log',level=logging.DEBUG,format='%(asctime)
 import datetime
 import code.utils as utils
 from code.distance import get_distance
+from sklearn.neighbors import NearestNeighbors
 import numpy
 from config import S_FIELDS,F_FIELDS,EXAMPLE_DATA,TRAIN_DATA,TRIP_DATA_1
 
@@ -38,20 +39,12 @@ def derive_filter(rows,tolerance = 4.0):
         return False
     return custom_filter
 
-def enumerate_look(iterable):
-    it = enumerate(iterable)
-    last = it.next()
-    for val in it:
-        yield last, False
-        last = val
-    yield last, True
-
 if __name__ == '__main__':
     models = []
     features = (4,5,6,7) 
     target = 2
-    train_file = TRAIN_DATA
-    test_file = TRIP_DATA_1
+    train_file = EXAMPLE_DATA
+    test_file = TRAIN_DATA
 
     # Derive a filter from example data
     mean_dev_filter = derive_filter(utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS))
@@ -65,31 +58,34 @@ if __name__ == '__main__':
     # Set up neighbors data
     x_train, y_train = [],[]
     for i,row in enumerate(train_data):
-    	plong,plat,dlong,dlat=row[-4:]
-    	disp = get_distance(plat,plong,dlat,dlong)
-    	x_train.append(disp)
+    	x_train.append([row[feat] for feat in features])
     	y_train.append(row[target])
-    x_train, y_train = map(numpy.array,[x_train, y_train])
+    x_train = numpy.vstack(x_train)
+    y_train = numpy.vstack(y_train)
 
-
-    # Find nearest neigbor
-    y_test_actual,y_test_predict = [],[]
+    # Create test set
+    x_test,y_test_actual = [],[]
     for i,row in enumerate(trip_data_1):
     	if i == 10**5:
         	break
-    	plong,plat,dlong,dlat=row[-4:]
-    	disp = get_distance(plat,plong,dlat,dlong)
-        diff = abs(x_train - disp)
-        index = diff.argmin()
+        x_test.append([row[feat] for feat in features])
         y_test_actual.append(row[target])
-        y_test_predict.append(y_train[index])
 
+    x_test = numpy.vstack(x_test)
 
-    y_test_actual,y_test_predict = map(numpy.array,[y_test_actual,y_test_predict])
+    # Find nearest neigbor
+    naybors = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(x_train)
+    y_test_actual = numpy.vstack(y_test_actual).flatten()
+    y_test_predict = numpy.empty(y_test_actual.shape)
+
+    for i, x in enumerate(x_test):
+        ind = naybors.kneighbors(x, return_distance = False)
+        y_test_predict[i] = y_train[ind]
 
     print "\nEvaluation on "+str(len(y_test_predict))+" trips from trip_data_1.csv"
     utils.evaluate_manual(y_test_predict,y_test_actual)
+
     # clear the buffer
-    y_test_actual,y_test_predict = [],[]
+    x_test,y_test_actual,y_test_predict = [],[],[]
     x_train, y_train = [],[]
 

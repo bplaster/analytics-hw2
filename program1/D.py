@@ -12,6 +12,7 @@ import code.utils as utils
 import math
 from code.distance import get_distance
 import numpy
+from sklearn.neighbors import NearestNeighbors
 from config import S_FIELDS,F_FIELDS,EXAMPLE_DATA,TRAIN_DATA,TRIP_DATA_1
 
 def derive_filter(rows,tolerance = 4.0):
@@ -88,16 +89,6 @@ def derive_stddevs(rows, indexes, mean_values):
 	for key, value in std_dev_values.iteritems():
 		std_dev_values[key] = math.sqrt(value / count)
 	logging.debug("scale values standard deviation"+str(std_dev_values))
-
-	# def custom_transform(row):
-	# 	try:
-	# 		row[0] = time_to_float(row[0])
-	# 		for index in indexes:
-	# 			row[index] = (row[index] - mean_values[index])/std_dev_values[index] 
-	# 		return row
-	# 	except:
-	# 		logging.exception("Scaling error")
-	# 		raise ValueError
 	
 	return std_dev_values
 
@@ -126,8 +117,8 @@ def derive_scale_transform(rows,indexes,mean_values,std_values):
         try:
             row[0] = utils.time_to_float(row[0])
             for index in indexes:
-            	#row[index] = (row[index] - mean_values[index])/std_values[index] 
-                row[index] = (row[index] - min_values[index]) / (max_values[index]-min_values[index])
+            	row[index] = (row[index] - mean_values[index])/std_values[index] 
+                #row[index] = (row[index] - min_values[index]) / (max_values[index]-min_values[index])
             return row
         except:
             logging.exception("Scaling error")
@@ -139,8 +130,8 @@ if __name__ == '__main__':
     models = []
     features = (0,3,4,5,6,7) 
     target = 2
-    train_file = EXAMPLE_DATA
-    test_file = TRAIN_DATA
+    train_file = TRAIN_DATA
+    test_file = TRIP_DATA_1
 
     # Derive a filter from example data
     mean_dev_filter = derive_filter(utils.load_csv_lazy(train_file,S_FIELDS,F_FIELDS))
@@ -156,32 +147,37 @@ if __name__ == '__main__':
     # now trip_data_1 is a loadCSV is a generator
     trip_data_1 = utils.load_csv_lazy(test_file,S_FIELDS,F_FIELDS, row_filter = mean_dev_filter, row_transformer = scale_transform)
 
-    # Set up neighbors data
+     # Set up neighbors data
     x_train, y_train = [],[]
     for i,row in enumerate(train_data):
-    	plong,plat,dlong,dlat=row[-4:]
-    	disp = get_distance(plat,plong,dlat,dlong)
-    	x_train.append([row[features[0]],row[features[1]],disp])
-    	y_train.append(row[target])
-    x_train, y_train = map(numpy.array,[x_train, y_train])
+        x_train.append([row[feat] for feat in features])
+        y_train.append(row[target])
+    x_train = numpy.vstack(x_train)
+    y_train = numpy.vstack(y_train)
+
+    # Create test set
+    x_test,y_test_actual = [],[]
+    for i,row in enumerate(trip_data_1):
+        if i == 10**4:
+            break
+        x_test.append([row[feat] for feat in features])
+        y_test_actual.append(row[target])
+
+    x_test = numpy.vstack(x_test)
 
     # Find nearest neigbor
-    y_test_actual,y_test_predict = [],[]
-    for i,row in enumerate(trip_data_1):
-    	if i == 10**4:
-        	break
-    	plong,plat,dlong,dlat=row[-4:]
-    	disp = get_distance(plat,plong,dlat,dlong)
-        diff = numpy.sqrt(numpy.square(x_train[:,0]-row[features[0]])+numpy.square(x_train[:,1]-row[features[1]])+numpy.square(x_train[:,2] - disp))
-        index = diff.argmin()
-        y_test_actual.append(row[target])
-        y_test_predict.append(y_train[index])
+    naybors = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(x_train)
+    y_test_actual = numpy.vstack(y_test_actual).flatten()
+    y_test_predict = numpy.empty(y_test_actual.shape)
 
-    y_test_actual,y_test_predict = map(numpy.array,[y_test_actual,y_test_predict])
+    for i, x in enumerate(x_test):
+        ind = naybors.kneighbors(x, return_distance = False)
+        y_test_predict[i] = y_train[ind]
 
     print "\nEvaluation on "+str(len(y_test_predict))+" trips from trip_data_1.csv"
     utils.evaluate_manual(y_test_predict,y_test_actual)
 
     # clear the buffer
-    y_test_actual,y_test_predict = [],[]
+    x_test,y_test_actual,y_test_predict = [],[],[]
     x_train, y_train = [],[]
+

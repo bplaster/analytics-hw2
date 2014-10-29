@@ -7,7 +7,8 @@ def time_to_float(str_time):
     date, time = (str_time).split(" ")
     years, months, days = (date).split("-")
     hours, minutes, seconds = time.split(":")
-    time_in_minutes = 24*20*float(days)*60*float(hours)+float(minutes)
+    # time_in_minutes = float(days) + float(hours)/24 + float(minutes)/(24*60)
+    time_in_minutes = 60*float(hours) + float(minutes)
     return time_in_minutes
 
 def metrics(model,x,y):

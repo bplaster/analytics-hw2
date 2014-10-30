@@ -17,6 +17,7 @@ def main():
     #dt.check_tree(decision_tree)
     test_results = dt.test(decision_tree, test_data)
 
+    print 'Prediction Accuracy:'
     print test_results
 
 if __name__ == '__main__':

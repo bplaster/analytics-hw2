@@ -13,9 +13,9 @@ class DecisionTree:
         #print self.value
         if self.value in data:
             #data.remove(self.value)
-            self = self.right
-        else:
             self = self.left
+        else:
+            self = self.right
         return self.go(data)
 
     def go(self, data):
@@ -29,6 +29,7 @@ class DecisionTree:
 # http://en.wikipedia.org/wiki/ID3_algorithm
 def train(data):
     #Call recursive function create_decision_tree
+    print 'Printing node values and labels as trained (mainly to track whether algorithm is proceeding):'
     tree = create_decision_tree (data, scan.get_unique_trainingwords())
     return tree
 
@@ -39,9 +40,9 @@ def test(decision_tree, data):
     for i,review in enumerate(data):
         #print review[0]
         decision = decision_tree.go(review[0].split())
-        print decision
+        #print decision
         #print review[0]
-        print i
+        #print i
         if decision == review[1]:
             successful += 1
         else:
@@ -58,11 +59,11 @@ def create_decision_tree (data, attributes):
     checkint = check(data,attributes)
     if (checkint == 0):
         root.node_label = 0
-        #print root.node_label
+        print root.node_label
         return root
     elif (checkint == 1):
         root.node_label = 1
-        #print root.node_label
+        print root.node_label
         return root
     
     # Get attribute with maximum information gain
@@ -81,13 +82,14 @@ def create_decision_tree (data, attributes):
     if (infogain == 0):
         checkint = check(data,attribute)
         root.node_label = checkint
+        print root.node_label
         return root
 
     root.value = attribute
     print root.value
 
     #Divide dataset into left and right
-    data_left, data_right = utils.divide_dataset (data, attribute)
+    data_left, data_right = divide_dataset (data, attribute)
     attributes.remove(attribute)
     #print attributes
 
@@ -124,6 +126,21 @@ def check (data,attributes):
         return 1
     elif negcount > poscount:
         return 0
+
+def divide_dataset(data,attribute):
+    data_left = []
+    data_right = []
+
+    for review in data:
+        words = review[0].split()
+        #if attribute in words:
+        try: 
+            words.index(attribute)    
+            data_left.append(review)
+        except:
+            data_right.append(review)
+    
+    return data_left, data_right
 
 def check_tree (root):
     if root.node_label != None:

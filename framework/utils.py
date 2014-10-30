@@ -1,76 +1,58 @@
 from math import log
 
 # decision tree stuff
-def entropy(lst):
-    neg = 0
-    pos = 0
+def entropy(pos,total):
 
-    len_lst = len(lst)
-    if (len_lst == 0):
+    if total == 0:
         return 0
 
-    for ele in lst:
-        if ele == 0:
-            neg += 1
-        else:
-            pos += 1
-
-    prone = neg/float(len_lst)
-    przero = pos/float(len_lst)
+    pr1 = pos/float(total)
+    pr0 = (total - pos)/float(total)
     #print prone
     #print przero
-    if (prone == 0 or przero == 0):
+    if (pr1 == 0 or pr0 == 0):
         return 0
 
-    entpy = -( prone*log(prone,2) + przero*log(przero,2) )
+    entpy = -( pr1*log(pr1,2) + pr0*log(pr0,2) )
     
     return entpy
 
 def information_gain(data, attribute):
-    data_left = []
-    data_right = []
-    data_left,data_right = divide_dataset (data,attribute)
-
-    scores_list = get_scores(data)
-    scores_list_left = get_scores(data_left)
-    scores_list_right = get_scores(data_right)
-
-    len_data = len (scores_list)
-    len_data_left = len(scores_list_left)
-    len_data_right = len(scores_list_right)
-
-    infogain = entropy(scores_list) - (len_data_left/float(len_data))*entropy(scores_list_left) - (len_data_right/float(len_data))*entropy(scores_list_right)
-    
-    return infogain
-
-def divide_dataset(data,attribute):
-    data_left = []
-    data_right = []
+    #data_left = []
+    #data_right = []
+    #data_left,data_right = divide_dataset (data,attribute)
+    left_scores = 0
+    right_scores = 0
+    left_pos = 0
+    right_pos = 0
+    total_pos = 0
+    len_data = len(data)
 
     for review in data:
         words = review[0].split()
-        if attribute in words:
-            data_right.append(review)
-        else:
-            data_left.append(review)
-    
-    return data_left, data_right
+        #if attribute in words:
+        try:
+            words.index(attribute)
+            left_scores += 1
+            if review[1] == 1:
+                left_pos += 1
+                total_pos += 1
+        except:
+            right_scores += 1
+            if review[1] == 1:
+                right_pos += 1
+                total_pos += 1
 
-def get_scores(data):
-    scores_list = []
-    for ele in data:
-        scores_list.append(ele[1])
-    return scores_list
 
+    infogain = entropy(total_pos,len_data) - (left_scores/float(len_data))*entropy(left_pos,left_scores) - (right_scores/float(len_data))*entropy(right_pos,right_scores)
+    return infogain
 
 # natural language processing stuff
 def freq(lst):
     freq = {}
     length = len(lst)
     for ele in lst:
-        if ele not in freq:
-            freq[ele] = 0
-        freq[ele] += 1
+        freq[ele] = 1
     return (freq, length)
 
 def get_unigram(review):

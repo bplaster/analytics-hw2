@@ -9,7 +9,9 @@ from utils import get_unigram_list
 BINARY = True
 NONWORDS = re.compile('[\W_]+')
 STOPWORDS = stopwords.words('english')
-
+#poswords = []
+#negwords = []
+#overallwords = []
 trainingwords = []
 
 # read in a file
@@ -22,7 +24,7 @@ def scan(filename, exclude_stopwords = False, binary_label = False):
     truecount = 0
     with open(filename, 'r') as f:
         #while True:
-        while truecount < 100000:
+        while truecount < 1000:
             elements = {}
 
             for line in f:
@@ -52,8 +54,11 @@ def scan(filename, exclude_stopwords = False, binary_label = False):
             # Get unigrams for current review using methods in utils.py
             unigram_list = get_unigram_list(review)
 
-            # Add unigrams to global unigram list
+            # Add unigrams to positive and negative unigram lists
             for ele in unigram_list:
+                #if ele not in overall_unigram_list:
+                 #   overall_unigram_list[ele] = 0
+                #overall_unigram_list[ele] += 1
                 if (score == 1):
                     if ele not in positive_unigram_list:
                         positive_unigram_list[ele] = 0
@@ -75,18 +80,27 @@ def scan(filename, exclude_stopwords = False, binary_label = False):
     # Append first 500 positive and negative words to attributes
     count = 1
     for w in sorted(positive_unigram_list, key=positive_unigram_list.get, reverse=True):
-        #print w, overall_unigram_list[w]
         trainingwords.append(w)
+        #poswords.append(w)
         count += 1
         if count > 500:
             break
     count = 1
     for w in sorted(negative_unigram_list, key=negative_unigram_list.get, reverse=True):
-        #print w, overall_unigram_list[w]
         trainingwords.append(w)
+        #negwords.append(w)
         count += 1
         if count > 500:
             break
+    #count = 1
+    #for w in sorted(overall_unigram_list, key=negative_unigram_list.get, reverse=True):
+     #   overallwords.append(w)
+      #  count += 1
+       # if count > 30:
+        #    break
+    #print overallwords
+    #print poswords
+    #print negwords
     return data
 
 def score_to_binary(score):

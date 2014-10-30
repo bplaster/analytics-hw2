@@ -6,7 +6,7 @@ __author__ = 'akp76_bp364'
 # Mean Absolute Error between expected and predicted trip times.
 
 import logging
-logging.basicConfig(filename='logs/D.log',level=logging.DEBUG,format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='logs/E.log',level=logging.DEBUG,format='%(asctime)s - %(levelname)s - %(message)s')
 import datetime
 import code.utils as utils
 import math
@@ -40,57 +40,57 @@ def derive_filter(rows,tolerance = 4.0):
     return custom_filter
 
 def derive_means(rows, indexes):
-	"""
-	Generates tran
-	:param rows:
-	:param indexes:
-	:return:
-	"""  
-	# First Loop through calculate the mean  
-	mean_values = {}
-	first = True
-	count = 0
-	for row in rows:
-		row[0] = utils.time_to_float(row[0])
-		count += 1
-		for index in indexes:
-			if not first:
-				mean_values[index] += row[index]
-			else:
-				mean_values[index] = row[index]
-		first = False
-	for key, value in mean_values.iteritems():
-		mean_values[key] = value / count
-	logging.debug("scale values mean"+str(mean_values))
+    """
+    Generates tran
+    :param rows:
+    :param indexes:
+    :return:
+    """  
+    # First Loop through calculate the mean  
+    mean_values = {}
+    first = True
+    count = 0
+    for row in rows:
+        row[0] = utils.time_to_float(row[0])
+        count += 1
+        for index in indexes:
+            if not first:
+                mean_values[index] += row[index]
+            else:
+                mean_values[index] = row[index]
+        first = False
+    for key, value in mean_values.iteritems():
+        mean_values[key] = value / count
+    logging.debug("scale values mean"+str(mean_values))
 
-	return mean_values
+    return mean_values
 
 
 def derive_stddevs(rows, indexes, mean_values):
-	"""
-	Generates tran
-	:param rows:
-	:param indexes:
-	:return:
-	"""  
-	# Second Loop through calculate the standard deviation
-	std_dev_values = {}
-	first = True
-	count = 0
-	for row in rows:
-		row[0] = utils.time_to_float(row[0])
-		count += 1
-		for index in indexes:
-			if not first:
-				std_dev_values[index] += (row[index]-mean_values[index])**2
-			else:
-				std_dev_values[index] = (row[index]-mean_values[index])**2
-		first = False
-	for key, value in std_dev_values.iteritems():
-		std_dev_values[key] = math.sqrt(value / count)
-	logging.debug("scale values standard deviation"+str(std_dev_values))
-	
-	return std_dev_values
+    """
+    Generates tran
+    :param rows:
+    :param indexes:
+    :return:
+    """  
+    # Second Loop through calculate the standard deviation
+    std_dev_values = {}
+    first = True
+    count = 0
+    for row in rows:
+        row[0] = utils.time_to_float(row[0])
+        count += 1
+        for index in indexes:
+            if not first:
+                std_dev_values[index] += (row[index]-mean_values[index])**2
+            else:
+                std_dev_values[index] = (row[index]-mean_values[index])**2
+        first = False
+    for key, value in std_dev_values.iteritems():
+        std_dev_values[key] = math.sqrt(value / count)
+    logging.debug("scale values standard deviation"+str(std_dev_values))
+    
+    return std_dev_values
 
 def derive_scale_transform(rows,indexes,mean_values,std_values):
     """
@@ -117,7 +117,7 @@ def derive_scale_transform(rows,indexes,mean_values,std_values):
         try:
             row[0] = utils.time_to_float(row[0])
             for index in indexes:
-            	row[index] = (row[index] - mean_values[index])/std_values[index] 
+                row[index] = (row[index] - mean_values[index])/std_values[index] 
                 #row[index] = (row[index] - min_values[index]) / (max_values[index]-min_values[index])
             return row
         except:
@@ -164,20 +164,26 @@ if __name__ == '__main__':
         y_test_actual.append(row[target])
 
     x_test = numpy.vstack(x_test)
-
-    # Find nearest neigbor
-    naybors = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(x_train)
     y_test_actual = numpy.vstack(y_test_actual).flatten()
     y_test_predict = numpy.empty(y_test_actual.shape)
+    print "\nEvaluation on "+str(len(y_test_actual))+" trips from trip_data_1.csv"
 
-    for i, x in enumerate(x_test):
-        ind = naybors.kneighbors(x, return_distance = False)
-        y_test_predict[i] = y_train[ind]
+    opt_ols, opt_rmse, opt_corr, opt_k = 0,0,0,0
+    # Find nearest neigbor
+    for k in range(5,21):
+        naybors = NearestNeighbors(n_neighbors=k, algorithm='auto').fit(x_train)
+        for i, x in enumerate(x_test):
+            ind = naybors.kneighbors(x, return_distance = False)
+            med = int(math.floor(k/2))
+            y_test_predict[i] = y_train[ind[0][med]]
 
-    print "\nEvaluation on "+str(len(y_test_predict))+" trips from trip_data_1.csv"
-    utils.evaluate_manual(y_test_predict,y_test_actual)
+        ols, rmse, corr_mat = utils.metrics_manual(y_test_predict,y_test_actual)
+        corr = corr_mat[0][1]
+        print "\t","K = ",k,": OLS, RMSE and Correlation coefficient", ols, rmse, corr
+        if corr > opt_corr:
+            opt_ols, opt_rmse, opt_corr, opt_k = ols, rmse, corr, k
 
+    print "OPTIMAL K = ",opt_k,": OLS, RMSE and Correlation coefficient", opt_ols, opt_rmse, opt_corr
     # clear the buffer
     x_test,y_test_actual,y_test_predict = [],[],[]
     x_train, y_train = [],[]
-
